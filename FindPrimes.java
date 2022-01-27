@@ -1,17 +1,15 @@
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Collections;
 import java.util.ArrayList;
+import java.util.*;
 // The handler class for our multithreaded prime-finding solution
 class FindPrimes
 {
   public static void main(String[] args)
   {
-    /*
-    for (int i = 0; i <= 32; i++)
-    {
-      System.out.println("Checking " + i + "... " + (isPrime(i) ? "Prime!" : "Not prime!"));
-    }*/
-    // FindPrimesSequential((int) 10e2);
     int numThreads = 0;
     int max = 0;
     try
@@ -25,9 +23,37 @@ class FindPrimes
       System.out.println("Error -- Run with \"java FindPrimes.java <number of threads> <number to search to>\"");
       return;
     }
-    System.out.println("Preparing to dispatch threads...");
+    FindPrimesSequential(max);
+    FindPrimesConcurrent(numThreads, max);
+  }
 
-    // Thread[] threads = new Thread[numThreads];
+  // Returns all the prime numbers up to n
+  public static void FindPrimesSequential(int max)
+  {
+    System.out.println("Finding all primes up to " + max + " sequentially! This may take some time...");
+    long startTime = System.currentTimeMillis();
+
+    long sumOfPrimes = 0;
+    int primesFound = 0;
+    for (int i = 0; i < max; i++)
+    {
+      if (isPrime(i))
+      {
+        sumOfPrimes += i;
+        primesFound++;
+      }
+    }
+    long endTime = System.currentTimeMillis();
+    System.out.println("Execution time: " + (endTime - startTime));
+    System.out.println("Primes found: " + primesFound);
+    System.out.println("Sum of primes: " + sumOfPrimes);
+  }
+
+  public static void FindPrimesConcurrent(int numThreads, int max)
+  {
+    System.out.println("Finding all primes up to " + max + " sequentially! This may take some time...");
+    long startTime = System.currentTimeMillis();
+
     ArrayList<Thread> threads = new ArrayList<>();
 
     // Create a new threadRunner with the desire number to find primes up to
@@ -37,45 +63,25 @@ class FindPrimes
       Thread thread = new Thread(threadRunner);
       threads.add(thread);
       thread.start();
-      // threads.get(i)
-      // threads[i] = new Thread(threadRunner);
-      // threads[i].start();
     }
-
-    System.out.println("Dispatched threads!");
-    System.out.println("Preparing to join threads...");
     try
     {
+      // Join threads, so that the program waits until they have all completed
       for (Thread thread : threads)
       {
         thread.join();
-        ;
       }
     }
     catch (Exception e)
     {
       System.out.println("Caught an exception!");
     }
-    System.out.println("Joined threads!");
-    /*
-    for (int i = 0; i < numThreads; i++)
-    {
-      threads.get(i).join();
-    }*/
-    System.out.println("Reached end of main!");
 
+    long endTime = System.currentTimeMillis();
+    System.out.println("Execution time: " + (endTime - startTime));
     System.out.println("Primes found: " + threadRunner.GetPrimesFound());
     System.out.println("Sum of primes: " + threadRunner.GetSumOfPrimes());
-  }
-
-  // Returns all the prime numbers up to n
-  public static void FindPrimesSequential(int n)
-  {
-    for (int i = 0; i < n; i++)
-    {
-      if (isPrime(i))
-        System.out.println(i);
-    }
+    threadRunner.PrintTopTenPrimes();
   }
   // A naive but simple method to check if a number is prime, by checking all
   // numbers up to it.
@@ -88,7 +94,6 @@ class FindPrimes
     // A number n can't have a factor greater than sqrt(n)
     for (int i = 2; i <= Math.sqrt(n); i++)
     {
-      // System.out.println("Checking factor " + i + " on number " + n);
       if (n % i == 0)
         return false;
     }
@@ -96,21 +101,34 @@ class FindPrimes
   }
 }
 
-// PrimeThread is a single thread that will attempt to find a prime.
+
 class ThreadRunner implements Runnable
 {
+  // Thread control members
   static AtomicInteger counter = new AtomicInteger(1);
   AtomicBoolean endFlag;
-  public AtomicInteger primesFound;
-  public AtomicInteger sumOfPrimes;
   public int n;
+
+  // Execution results
+  public AtomicInteger primesFound;
+  public AtomicLong sumOfPrimes;
+
+  public AtomicInteger index;
+  // List<Integer> largestPrimes;
+  AtomicInteger smallestTopTenPrime;
+  CopyOnWriteArrayList<Integer> largestPrimes;
+  CopyOnWriteArrayList<Integer> primes;
 
   public ThreadRunner(int numberUpTo)
   {
     n = numberUpTo;
     primesFound = new AtomicInteger(0);
-    sumOfPrimes = new AtomicInteger(0);
+    sumOfPrimes = new AtomicLong(0);
     endFlag = new AtomicBoolean(false);
+
+    largestPrimes = new CopyOnWriteArrayList<Integer>();
+    primes = new CopyOnWriteArrayList<Integer>();
+    smallestTopTenPrime = new AtomicInteger(0);
   }
   public void run()
   {
@@ -121,33 +139,47 @@ class ThreadRunner implements Runnable
       //current = counter.addAndGet(1);
       if (FindPrimes.isPrime(current))
       {
-        // System.out.println(current);
+        // primes.add(current);
         primesFound.getAndIncrement();
         sumOfPrimes.addAndGet(current);
       }
     }
-    /*
-    for (int current = counter.getAndIncrement(); current <= n; )
-    {
-      if (FindPrimes.isPrime(current))
-      {
-        System.out.println(current);
-        primesFound.getAndIncrement();
-        sumOfPrimes.addAndGet(current);
-      }
-    }*/
-
     if (!endFlag.get())
       ;// PrintSummary();
     endFlag.set(true);
   }
+
+  private void maybeAdd(int current)
+  {
+    int smallest = smallestTopTenPrime.get();
+    if (current > smallest)
+    {
+      if (largestPrimes.size() > 10)
+        largestPrimes.remove(largestPrimes.indexOf(Collections.min(largestPrimes)));
+      largestPrimes.add(current);
+    }
+    smallestTopTenPrime.set(Collections.min(largestPrimes));
+  }
+
+  // Getters return results of execution
   public int GetPrimesFound()
   {
     return primesFound.get();
   }
 
-  public int GetSumOfPrimes()
+  public long GetSumOfPrimes()
   {
     return sumOfPrimes.get();
+  }
+
+  public void PrintTopTenPrimes()
+  {
+    Object[] arr = primes.toArray();
+    Arrays.sort(arr);
+    System.out.println("Top ten largest primes found:");
+    for (int i = arr.length - 10; i < arr.length; i++)
+    {
+      System.out.println(arr[i]);
+    }
   }
 }

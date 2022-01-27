@@ -64,13 +64,11 @@ class FindPrimes
       threads.add(thread);
       thread.start();
     }
+    // Join threads, so that the program waits until they have all completed
     try
     {
-      // Join threads, so that the program waits until they have all completed
       for (Thread thread : threads)
-      {
         thread.join();
-      }
     }
     catch (Exception e)
     {
@@ -113,11 +111,7 @@ class ThreadRunner implements Runnable
   public AtomicInteger primesFound;
   public AtomicLong sumOfPrimes;
 
-  public AtomicInteger index;
-  // List<Integer> largestPrimes;
-  AtomicInteger smallestTopTenPrime;
-  CopyOnWriteArrayList<Integer> largestPrimes;
-  CopyOnWriteArrayList<Integer> primes;
+  int[] topTenPrimes;
 
   public ThreadRunner(int numberUpTo)
   {
@@ -126,9 +120,7 @@ class ThreadRunner implements Runnable
     sumOfPrimes = new AtomicLong(0);
     endFlag = new AtomicBoolean(false);
 
-    largestPrimes = new CopyOnWriteArrayList<Integer>();
-    primes = new CopyOnWriteArrayList<Integer>();
-    smallestTopTenPrime = new AtomicInteger(0);
+    topTenPrimes = new int[10];
   }
   public void run()
   {
@@ -136,32 +128,15 @@ class ThreadRunner implements Runnable
 
     while (endFlag.get() && (current = counter.getAndIncrement()) <= n)
     {
-      //current = counter.addAndGet(1);
       if (FindPrimes.isPrime(current))
       {
-        // primes.add(current);
+        topTenPrimes[primesFound.get() % 10] = current;
         primesFound.getAndIncrement();
         sumOfPrimes.addAndGet(current);
       }
     }
-    if (!endFlag.get())
-      ;// PrintSummary();
     endFlag.set(true);
   }
-
-  private void maybeAdd(int current)
-  {
-    int smallest = smallestTopTenPrime.get();
-    if (current > smallest)
-    {
-      if (largestPrimes.size() > 10)
-        largestPrimes.remove(largestPrimes.indexOf(Collections.min(largestPrimes)));
-      largestPrimes.add(current);
-    }
-    smallestTopTenPrime.set(Collections.min(largestPrimes));
-  }
-
-  // Getters return results of execution
   public int GetPrimesFound()
   {
     return primesFound.get();
@@ -174,12 +149,11 @@ class ThreadRunner implements Runnable
 
   public void PrintTopTenPrimes()
   {
-    Object[] arr = primes.toArray();
-    Arrays.sort(arr);
+    Arrays.sort(topTenPrimes);
     System.out.println("Top ten largest primes found:");
-    for (int i = arr.length - 10; i < arr.length; i++)
+    for (int i = 0; i < topTenPrimes.length; i++)
     {
-      System.out.println(arr[i]);
+      System.out.println(topTenPrimes[i]);
     }
   }
 }

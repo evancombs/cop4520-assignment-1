@@ -26,7 +26,6 @@ class FindPrimes
       return;
     }
     // FindPrimesSequential(max);
-    // FindPrimesSequentialSieve(max);
     FindPrimesConcurrent(numThreads, max);
   }
 
@@ -54,38 +53,6 @@ class FindPrimes
     System.out.println("Sum of primes: " + sumOfPrimes);
   }
 
-  // Returns all prime numbers up to max using a prime sieve
-  public static void FindPrimesSequentialSieve(int max)
-  {
-    boolean[] isPrime = new boolean[max];
-    long sumOfPrimes = 0;
-    int primesFound = 0;
-
-    System.out.println("Finding all primes up to " + max + " sequentially, with a SIEVE! This may take some time...");
-    long startTime = System.currentTimeMillis();
-
-    // Initialize prime array
-    for (int i = 0; i < max; i++)
-      isPrime[i] = true;
-
-    for (int i = 2; i < max; i++)
-    {
-      if (isPrime[i])
-      {
-        sumOfPrimes += i;
-        primesFound++;
-        for (int j = i; j < max; j += i)
-        {
-            isPrime[j] = false;
-        }
-      }
-    }
-
-    long endTime = System.currentTimeMillis();
-    System.out.println("Execution time: " + (endTime - startTime));
-    System.out.println("Primes found: " + primesFound);
-    System.out.println("Sum of primes: " + sumOfPrimes);
-  }
 
   // Returns all prime numbers up to max, using numThreads threads.
   public static void FindPrimesConcurrent(int numThreads, int max)
@@ -120,13 +87,13 @@ class FindPrimes
     long endTime = System.currentTimeMillis();
     threadRunner.countSieve();
 
-    // System.out.println("Execution time: " + (endTime - startTime));
-    // System.out.println("Primes found: " + threadRunner.GetPrimesFound());
-    // System.out.println("Sum of primes: " + threadRunner.GetSumOfPrimes());
-    // threadRunner.PrintTopTenPrimes();
+    System.out.println("Execution time: " + (endTime - startTime));
+     System.out.println("Primes found: " + threadRunner.GetPrimesFound());
+     System.out.println("Sum of primes: " + threadRunner.GetSumOfPrimes());
+     threadRunner.PrintTopTenPrimes();
 
-    WriteResultsToFile("output.txt", endTime - startTime, threadRunner.GetSumOfPrimes(),
-                        threadRunner.GetPrimesFound(), threadRunner.getTopTenPrimes());
+    // WriteResultsToFile("output.txt", endTime - startTime, threadRunner.GetSumOfPrimes(),
+    //                     threadRunner.GetPrimesFound(), threadRunner.getTopTenPrimes());
   }
   // A naive but simple method to check if a number is prime, by checking all
   // numbers up to it.
